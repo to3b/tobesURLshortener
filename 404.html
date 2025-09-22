@@ -1,6 +1,6 @@
 <h1 id="text"></h1>
 <script>
-fetch("hello.txt")
+fetch("https://raw.githubusercontent.com/to3b/tobesURLshortener/refs/heads/main/hello.txt")
   .then(res => res.json())
   .then(dict => {
       if(dict[window.location.href]) {
@@ -13,6 +13,7 @@ fetch("hello.txt")
       document.getElementById("text").innerText = "No URL redirect";
   });
 </script>
+
 
 
 
