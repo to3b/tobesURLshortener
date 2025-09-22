@@ -1,7 +1,7 @@
 <script>
 function reqListener() {
     const dict = JSON.parse(req.responseText);
-    console.log(dict["hello"])
+    window.location.href = dict[document.URL]
 }
 
 const req = new XMLHttpRequest();
@@ -10,6 +10,7 @@ req.open("GET", "hello.txt");
 req.send();
 
 </script>
+
 
 
 
