@@ -1,19 +1,20 @@
 <h1 id="text"></h1>
 <script>
 fetch("https://raw.githubusercontent.com/to3b/tobesURLshortener/refs/heads/main/hello.txt")
-  .then(res => res.text()) // fetch as text
+  .then(res => res.text())
   .then(text => {
       let dict;
       try {
-          dict = JSON.parse(text); // parse JSON
+          dict = JSON.parse(text); // JSON maps subdomains to URLs
       } catch (e) {
           document.getElementById("text").innerText = "Invalid JSON";
           return;
       }
 
-      const currentURL = window.location.href;
-      if(dict[currentURL]) {
-          window.location.href = dict[currentURL];
+      const subdomain = window.location.hostname.split('.')[0];
+
+      if(dict[subdomain]) {
+          window.location.href = dict[subdomain];
       } else {
           document.getElementById("text").innerText = "No URL redirect";
       }
