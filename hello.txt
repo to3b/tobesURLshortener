@@ -1,7 +1,8 @@
 {
-  "https://to3b.github.io/tobesURLshortener/i": "https://imgur.com",
-  "https://to3b.github.io/tobesURLshortener/d": "https://discord.com",
-  "https://to3b.github.io/tobesURLshortener/a": "https://apple.com",
-  "https://to3b.github.io/tobesURLshortener/y": "https://youtube.com",
-  "https://to3b.github.io/tobesURLshortener/g": "https://google.com"
+  "https://y.t-b.es/i": "https://imgur.com",
+  "https://y.t-b.es/d": "https://discord.com",
+  "https://y.t-b.es/a": "https://apple.com",
+  "https://y.t-b.es/y": "https://youtube.com",
+  "https://y.t-b.es/g": "https://google.com"
 }
+
