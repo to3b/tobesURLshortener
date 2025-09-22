@@ -1,5 +1,6 @@
 <script>
 function reqListener() {
+    const dict = JSON.parse(req.responseText);
     console.log(dict["hello"])
 }
 
@@ -9,5 +10,6 @@ req.open("GET", "https://raw.githubusercontent.com/to3b/tobesURLshortener/refs/h
 req.send();
 
 </script>
+
 
 
