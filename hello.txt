@@ -1,8 +1,7 @@
 {
-  "https://y.t-b.es/i": "https://imgur.com",
-  "https://y.t-b.es/d": "https://discord.com",
-  "https://y.t-b.es/a": "https://apple.com",
-  "https://y.t-b.es/y": "https://youtube.com",
-  "https://y.t-b.es/g": "https://google.com"
+  "y": "https://imgur.com",
+  "d": "https://discord.com",
+  "a": "https://apple.com",
+  "yout": "https://youtube.com",
+  "g": "https://google.com"
 }
-
