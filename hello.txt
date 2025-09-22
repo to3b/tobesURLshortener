@@ -1,7 +1,9 @@
 {
-  "y": "https://imgur.com",
+  "i": "https://instagram.com",
   "d": "https://discord.com",
   "a": "https://apple.com",
-  "yout": "https://youtube.com",
+  "y": "https://youtube.com",
+  "r": "https://reddit.com",
   "g": "https://google.com"
 }
+
