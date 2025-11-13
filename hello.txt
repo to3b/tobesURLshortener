@@ -7,8 +7,10 @@
   "c": "https://wintrchess.com/analysis",
   "win10": "https://cdn.discordapp.com/attachments/1418103352373280950/1420325458163269662/Windows_10_x64.vmx?ex=68d4fca9&is=68d3ab29&hm=7e67f79eab31d415d3e65c852b4e781c4bb019063ff0bf070a1b6654ab475298&",
   "g": "https://google.com",
-  "chat": "https://eluvial-millie-uncoagulable.ngrok-free.dev"
+  "chat": "https://eluvial-millie-uncoagulable.ngrok-free.dev",
+  "n": "https://docs.google.com/document/d/1mjmFrZdWWk9TaLyQ7JXFE8q9I15pHZ9m2n6zcFWyp3E/edit?tab=t.0"
 }
+
 
 
 
