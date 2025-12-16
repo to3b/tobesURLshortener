@@ -11,11 +11,3 @@
   "n": "https://docs.google.com/document/d/1mjmFrZdWWk9TaLyQ7JXFE8q9I15pHZ9m2n6zcFWyp3E/edit?tab=t.0",
   "f": "https://drive.google.com/drive/folders/1K7L106woFWZssCdl_Y5H1Fh4H_bLlcUU?usp=sharing"
 }
-
-
-
-
-
-
-
-
