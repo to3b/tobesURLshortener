@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-root-domain="t-b.es" data-redirects-file="/hello.txt">
+<html lang="en" data-root-domain="t-b.es" data-redirects-url="https://raw.githubusercontent.com/to3b/tobesURLshortener/main/hello.txt">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -79,7 +79,6 @@
         }
       }
     </style>
-    <script src="/redirect.js" defer></script>
   </head>
   <body>
     <main aria-live="polite">
@@ -88,5 +87,126 @@
       <p id="status-detail">Looking up this address.</p>
       <p><a href="https://t-b.es/">Return to t-b.es</a></p>
     </main>
+
+    <script>
+      (() => {
+        "use strict";
+
+        const rootElement = document.documentElement;
+        const rootDomain = normaliseHostname(
+          rootElement.dataset.rootDomain || "t-b.es"
+        );
+        const redirectsUrl =
+          rootElement.dataset.redirectsUrl ||
+          "https://raw.githubusercontent.com/to3b/tobesURLshortener/main/hello.txt";
+
+        function normaliseHostname(hostname) {
+          return String(hostname || "")
+            .trim()
+            .toLowerCase()
+            .replace(/\.$/, "");
+        }
+
+        function getRedirectKey(hostname) {
+          const host = normaliseHostname(hostname);
+
+          if (!host || host === rootDomain || host === `www.${rootDomain}`) {
+            return null;
+          }
+
+          const suffix = `.${rootDomain}`;
+          if (host.endsWith(suffix)) {
+            return host.slice(0, -suffix.length) || null;
+          }
+
+          return null;
+        }
+
+        function normaliseTarget(value) {
+          if (typeof value !== "string" || value.trim() === "") {
+            return null;
+          }
+
+          try {
+            const target = new URL(value.trim());
+            return target.protocol === "http:" || target.protocol === "https:"
+              ? target
+              : null;
+          } catch {
+            return null;
+          }
+        }
+
+        function setMessage(title, detail) {
+          document.getElementById("status-title").textContent = title;
+          document.getElementById("status-detail").textContent = detail;
+        }
+
+        async function loadRedirects() {
+          const response = await fetch(redirectsUrl, {
+            cache: "no-store",
+            headers: { Accept: "application/json, text/plain;q=0.9" },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Redirect map returned HTTP ${response.status}`);
+          }
+
+          const redirects = await response.json();
+          if (!redirects || Array.isArray(redirects) || typeof redirects !== "object") {
+            throw new Error("Redirect map must be a JSON object");
+          }
+
+          return redirects;
+        }
+
+        async function start() {
+          const key = getRedirectKey(window.location.hostname);
+
+          if (!key) {
+            setMessage(
+              "No redirect requested",
+              `Use a configured subdomain such as name.${rootDomain}.`
+            );
+            return;
+          }
+
+          setMessage("Checking redirect…", `Looking up “${key}”.`);
+
+          try {
+            const redirects = await loadRedirects();
+            const hasKey = Object.prototype.hasOwnProperty.call(redirects, key);
+            const target = hasKey ? normaliseTarget(redirects[key]) : null;
+
+            if (!hasKey) {
+              setMessage(
+                "Redirect not found",
+                `There is no destination configured for “${key}”.`
+              );
+              return;
+            }
+
+            if (!target) {
+              setMessage(
+                "Redirect unavailable",
+                "The configured destination is not a valid HTTP or HTTPS URL."
+              );
+              return;
+            }
+
+            setMessage("Redirecting…", `Taking you to ${target.hostname}.`);
+            window.location.replace(target.href);
+          } catch (error) {
+            console.error("Unable to load redirect map:", error);
+            setMessage(
+              "Redirect unavailable",
+              "The redirect list could not be loaded. Try again shortly."
+            );
+          }
+        }
+
+        start();
+      })();
+    </script>
   </body>
 </html>
