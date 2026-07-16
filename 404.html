@@ -1,25 +1,92 @@
-<h1 id="text"></h1>
-<script>
-fetch("https://raw.githubusercontent.com/to3b/tobesURLshortener/refs/heads/main/hello.txt")
-  .then(res => res.text())
-  .then(text => {
-      let dict;
-      try {
-          dict = JSON.parse(text); // JSON maps subdomains to URLs
-      } catch (e) {
-          document.getElementById("text").innerText = "Invalid JSON";
-          return;
+<!doctype html>
+<html lang="en" data-root-domain="t-b.es" data-redirects-file="/hello.txt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#111827" />
+    <title>t-b.es redirect</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: #090d16;
+        color: #f8fafc;
       }
 
-      const subdomain = window.location.hostname.split('.')[0];
-
-      if(dict[subdomain]) {
-          window.location.href = dict[subdomain];
-      } else {
-          document.getElementById("text").innerText = "No URL redirect";
+      * {
+        box-sizing: border-box;
       }
-  })
-  .catch(() => {
-      document.getElementById("text").innerText = "No URL redirect";
-  });
-</script>
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background:
+          radial-gradient(circle at top, #172033 0, transparent 42%),
+          #090d16;
+      }
+
+      main {
+        width: min(100%, 520px);
+        padding: 32px;
+        border: 1px solid #273244;
+        border-radius: 20px;
+        background: rgba(15, 23, 42, 0.82);
+        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(14px);
+      }
+
+      .brand {
+        margin: 0 0 24px;
+        color: #93c5fd;
+        font-size: 0.82rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 6vw, 2.6rem);
+        line-height: 1.1;
+      }
+
+      p {
+        margin: 14px 0 0;
+        color: #b8c2d3;
+        line-height: 1.65;
+      }
+
+      a {
+        color: #bfdbfe;
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        main {
+          animation: enter 240ms ease-out both;
+        }
+
+        @keyframes enter {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+        }
+      }
+    </style>
+    <script src="/redirect.js" defer></script>
+  </head>
+  <body>
+    <main aria-live="polite">
+      <p class="brand">t-b.es</p>
+      <h1 id="status-title">Checking redirect…</h1>
+      <p id="status-detail">Looking up this address.</p>
+      <p><a href="https://t-b.es/">Return to t-b.es</a></p>
+    </main>
+  </body>
+</html>
