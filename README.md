@@ -2,7 +2,7 @@
 
 A deliberately small custom redirect service for `t-b.es`, hosted as a static GitHub Pages site.
 
-## How it works
+## How redirects work
 
 1. A request such as `g.t-b.es` reaches this GitHub Pages site.
 2. GitHub Pages serves `404.html` for the requested wildcard subdomain.
@@ -12,11 +12,23 @@ A deliberately small custom redirect service for `t-b.es`, hosted as a static Gi
 
 The redirect logic is intentionally self-contained. On wildcard GitHub Pages hosts, requests such as `/redirect.js` may also receive `404.html`, so relying on subdomain-relative assets can cause recursive or invalid asset responses.
 
-The data file keeps its existing `hello.txt` name for compatibility with the current setup.
+## Redirect manager
 
-## Add or update a redirect
+The root `t-b.es` page is a browser-based redirect manager. It can:
 
-Edit `hello.txt` and add a JSON entry:
+- load and filter the current redirects;
+- stage additions, updates, and removals locally;
+- validate subdomain names and HTTP/HTTPS destinations;
+- detect if `hello.txt` changed before publishing; and
+- commit the updated JSON directly to `main/hello.txt`.
+
+Reading redirects does not require authentication. Publishing requires a fine-grained GitHub personal access token with access to this repository and **Contents: read and write** permission.
+
+The token is held only in the page's JavaScript memory. It is not stored in local storage, session storage, cookies, the repository, or the redirect file, and it is cleared by refreshing or closing the page.
+
+## Manual editing
+
+`hello.txt` remains the source of truth and can still be edited directly:
 
 ```json
 {
@@ -38,7 +50,7 @@ Keep the file as valid JSON:
 
 - `hello.txt` — redirect key-to-URL map.
 - `404.html` — self-contained redirect logic, status display, and error handling.
-- `index.html` — minimal landing page for the root domain.
+- `index.html` — self-contained redirect management web app.
 - `robots.txt` — asks search engines not to index the redirect service.
 - `.nojekyll` — serves the repository as plain static files.
 
@@ -46,4 +58,4 @@ Keep the file as valid JSON:
 
 GitHub Pages must be configured for `t-b.es`. DNS also needs the apex records required by GitHub Pages and a wildcard record for `*.t-b.es` pointing at the same Pages site.
 
-Domain and DNS settings are intentionally not stored in this update, so the repository does not overwrite the existing live configuration.
+Domain and DNS settings are intentionally not stored in this repository, so updates do not overwrite the existing live configuration.
