@@ -3,6 +3,7 @@
   "c": "https://chatgpt.com/",
   "chat": "https://eluvial-millie-uncoagulable.ngrok-free.dev/",
   "d": "https://discord.com/",
+  "example": "https://example.com/",
   "f": "https://drive.google.com/drive/folders/1K7L106woFWZssCdl_Y5H1Fh4H_bLlcUU?usp=sharing",
   "g": "https://google.com/",
   "i": "https://instagram.com/",
