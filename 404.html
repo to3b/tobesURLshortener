@@ -1,24 +1,36 @@
 <!doctype html>
-<html lang="en" data-root-domain="t-b.es" data-redirects-url="https://raw.githubusercontent.com/to3b/tobesURLshortener/main/hello.txt">
+<html
+  lang="en"
+  data-root-domain="t-b.es"
+  data-redirects-url="https://raw.githubusercontent.com/to3b/tobesURLshortener/main/hello.txt"
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#111827" />
-    <title>t-b.es redirect</title>
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#f4f1e9" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; connect-src https://raw.githubusercontent.com; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+    />
+    <title>t-b.es — checking link</title>
     <style>
       :root {
-        color-scheme: dark;
-        font-family:
-          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        background: #090d16;
-        color: #f8fafc;
+        color-scheme: light;
+        --canvas: #f4f1e9;
+        --surface: #fffdf8;
+        --ink: #17202d;
+        --muted: #69717d;
+        --line: #ded8cc;
+        --brand: #3156d8;
+        --shadow: 0 24px 70px rgb(23 32 45 / 10%);
+        font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--canvas);
+        color: var(--ink);
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
       body {
         min-height: 100vh;
@@ -27,117 +39,186 @@
         place-items: center;
         padding: 24px;
         background:
-          radial-gradient(circle at top, #172033 0, transparent 42%),
-          #090d16;
+          radial-gradient(circle at 78% 12%, rgb(49 86 216 / 10%), transparent 24rem),
+          var(--canvas);
       }
 
       main {
-        width: min(100%, 520px);
-        padding: 32px;
-        border: 1px solid #273244;
-        border-radius: 20px;
-        background: rgba(15, 23, 42, 0.82);
-        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
-        backdrop-filter: blur(14px);
+        width: min(100%, 560px);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--line);
       }
 
       .brand {
-        margin: 0 0 24px;
-        color: #93c5fd;
-        font-size: 0.82rem;
-        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: inherit;
+        font-weight: 760;
+        text-decoration: none;
+      }
+
+      .mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 10px 10px 10px 3px;
+        background: var(--ink);
+        color: white;
+        font-family: Georgia, serif;
+        font-size: 0.9rem;
+        font-style: italic;
+      }
+
+      .label {
+        color: var(--muted);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.68rem;
+      }
+
+      .content { padding: clamp(34px, 8vw, 58px); }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: var(--brand);
+        font-size: 0.66rem;
+        font-weight: 800;
         letter-spacing: 0.14em;
         text-transform: uppercase;
       }
 
       h1 {
         margin: 0;
-        font-size: clamp(1.8rem, 6vw, 2.6rem);
-        line-height: 1.1;
+        font-size: clamp(2.15rem, 8vw, 3.8rem);
+        letter-spacing: -0.065em;
+        line-height: 0.96;
       }
 
-      p {
-        margin: 14px 0 0;
-        color: #b8c2d3;
-        line-height: 1.65;
+      #status-detail {
+        margin: 18px 0 0;
+        color: var(--muted);
+        line-height: 1.7;
       }
 
-      a {
-        color: #bfdbfe;
+      .progress {
+        height: 3px;
+        overflow: hidden;
+        background: var(--line);
       }
 
-      @media (prefers-reduced-motion: no-preference) {
-        main {
-          animation: enter 240ms ease-out both;
+      .progress::after {
+        display: block;
+        width: 42%;
+        height: 100%;
+        background: var(--brand);
+        content: "";
+        animation: progress 1.1s ease-in-out infinite alternate;
+        transform-origin: left;
+      }
+
+      .resolved .progress::after { animation: none; transform: scaleX(0); }
+
+      .home-link {
+        display: inline-block;
+        margin-top: 24px;
+        color: var(--brand);
+        font-size: 0.78rem;
+        font-weight: 750;
+        text-underline-offset: 4px;
+      }
+
+      @keyframes progress {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(240%); }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --canvas: #111720;
+          --surface: #171f2a;
+          --ink: #f2efe8;
+          --muted: #aab1ba;
+          --line: #303b49;
+          --brand: #89a0ff;
+          --shadow: 0 24px 70px rgb(0 0 0 / 28%);
         }
 
-        @keyframes enter {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-        }
+        .mark { background: #f2efe8; color: #17202d; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .progress::after { animation-duration: 0.01ms; animation-iteration-count: 1; }
       }
     </style>
   </head>
   <body>
-    <main aria-live="polite">
-      <p class="brand">t-b.es</p>
-      <h1 id="status-title">Checking redirect…</h1>
-      <p id="status-detail">Looking up this address.</p>
-      <p><a href="https://t-b.es/">Return to t-b.es</a></p>
+    <main id="card" aria-live="polite">
+      <div class="bar">
+        <a class="brand" href="https://t-b.es/">
+          <span class="mark" aria-hidden="true">t·b</span>
+          <span>t-b.es</span>
+        </a>
+        <span class="label">link resolver</span>
+      </div>
+      <div class="progress" aria-hidden="true"></div>
+      <div class="content">
+        <p class="eyebrow">One moment</p>
+        <h1 id="status-title">Checking this link…</h1>
+        <p id="status-detail">Looking up the short address.</p>
+        <a class="home-link" href="https://t-b.es/">Return to the link desk</a>
+      </div>
     </main>
 
     <script>
       (() => {
         "use strict";
 
+        const MAX_MAP_BYTES = 64 * 1024;
+        const KEY_PATTERN = /^(?=.{1,63}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/;
+        const RESERVED_KEYS = new Set(["auth", "www"]);
         const rootElement = document.documentElement;
-        const rootDomain = normaliseHostname(
-          rootElement.dataset.rootDomain || "t-b.es"
-        );
+        const rootDomain = normaliseHostname(rootElement.dataset.rootDomain || "t-b.es");
         const redirectsUrl =
           rootElement.dataset.redirectsUrl ||
           "https://raw.githubusercontent.com/to3b/tobesURLshortener/main/hello.txt";
 
         function normaliseHostname(hostname) {
-          return String(hostname || "")
-            .trim()
-            .toLowerCase()
-            .replace(/\.$/, "");
+          return String(hostname || "").trim().toLowerCase().replace(/\.$/, "");
         }
 
         function getRedirectKey(hostname) {
           const host = normaliseHostname(hostname);
-
-          if (!host || host === rootDomain || host === `www.${rootDomain}`) {
-            return null;
-          }
-
           const suffix = `.${rootDomain}`;
-          if (host.endsWith(suffix)) {
-            return host.slice(0, -suffix.length) || null;
-          }
-
-          return null;
+          if (!host.endsWith(suffix)) return null;
+          const key = host.slice(0, -suffix.length);
+          return KEY_PATTERN.test(key) && !RESERVED_KEYS.has(key) ? key : null;
         }
 
         function normaliseTarget(value) {
-          if (typeof value !== "string" || value.trim() === "") {
-            return null;
-          }
-
+          if (typeof value !== "string" || !value.trim() || value.length > 2048) return null;
           try {
             const target = new URL(value.trim());
-            return target.protocol === "http:" || target.protocol === "https:"
-              ? target
-              : null;
+            return target.protocol === "http:" || target.protocol === "https:" ? target : null;
           } catch {
             return null;
           }
         }
 
         function setMessage(title, detail) {
+          document.getElementById("card").classList.add("resolved");
           document.getElementById("status-title").textContent = title;
           document.getElementById("status-detail").textContent = detail;
         }
@@ -147,61 +228,49 @@
             cache: "no-store",
             headers: { Accept: "application/json, text/plain;q=0.9" },
           });
+          if (!response.ok) throw new Error(`Redirect map returned HTTP ${response.status}`);
 
-          if (!response.ok) {
-            throw new Error(`Redirect map returned HTTP ${response.status}`);
+          const declaredLength = Number(response.headers.get("Content-Length") || 0);
+          if (declaredLength > MAX_MAP_BYTES) throw new Error("Redirect map is too large");
+          const text = await response.text();
+          if (new TextEncoder().encode(text).byteLength > MAX_MAP_BYTES) {
+            throw new Error("Redirect map is too large");
           }
 
-          const redirects = await response.json();
+          const redirects = JSON.parse(text);
           if (!redirects || Array.isArray(redirects) || typeof redirects !== "object") {
             throw new Error("Redirect map must be a JSON object");
           }
-
           return redirects;
         }
 
         async function start() {
           const key = getRedirectKey(window.location.hostname);
-
           if (!key) {
-            setMessage(
-              "No redirect requested",
-              `Use a configured subdomain such as name.${rootDomain}.`
-            );
+            setMessage("No short link here", `Try a configured address such as name.${rootDomain}.`);
             return;
           }
 
-          setMessage("Checking redirect…", `Looking up “${key}”.`);
-
+          document.getElementById("status-detail").textContent = `Looking up ${key}.${rootDomain}.`;
           try {
             const redirects = await loadRedirects();
             const hasKey = Object.prototype.hasOwnProperty.call(redirects, key);
             const target = hasKey ? normaliseTarget(redirects[key]) : null;
-
             if (!hasKey) {
-              setMessage(
-                "Redirect not found",
-                `There is no destination configured for “${key}”.`
-              );
+              setMessage("Link not found", `There is no destination configured for ${key}.${rootDomain}.`);
               return;
             }
-
             if (!target) {
-              setMessage(
-                "Redirect unavailable",
-                "The configured destination is not a valid HTTP or HTTPS URL."
-              );
+              setMessage("Link unavailable", "The saved destination is not a valid HTTP or HTTPS URL.");
               return;
             }
 
-            setMessage("Redirecting…", `Taking you to ${target.hostname}.`);
+            document.getElementById("status-title").textContent = "Taking the short way…";
+            document.getElementById("status-detail").textContent = `Redirecting to ${target.hostname}.`;
             window.location.replace(target.href);
           } catch (error) {
             console.error("Unable to load redirect map:", error);
-            setMessage(
-              "Redirect unavailable",
-              "The redirect list could not be loaded. Try again shortly."
-            );
+            setMessage("Link unavailable", "The redirect list could not be loaded. Try again shortly.");
           }
         }
 
