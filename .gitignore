@@ -1,0 +1,4 @@
+node_modules/
+worker/.dev.vars
+worker/.env
+.DS_Store
