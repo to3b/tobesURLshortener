@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import worker, { parseCookies, serialiseRedirects, validateRedirects } from "../src/index.js";
+import worker from "../src/entry.js";
+import { parseCookies, serialiseRedirects, validateRedirects } from "../src/index.js";
 import { shortRedirectKey } from "../src/short-redirects.js";
 
 test("validates and sorts redirects", () => {
@@ -86,6 +87,22 @@ test("unknown wildcard subdomains return a clean 404", async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("www redirects to the apex manager", async () => {
+  const response = await worker.fetch(new Request("https://www.t-b.es/path?x=1"), env);
+  assert.equal(response.status, 308);
+  assert.equal(response.headers.get("location"), "https://t-b.es/path?x=1");
+});
+
+test("GitHub authorization URL omits token-exchange-only parameters", async () => {
+  const response = await worker.fetch(new Request("https://auth.t-b.es/auth/login"), env);
+  assert.equal(response.status, 302);
+  const location = new URL(response.headers.get("location"));
+  assert.equal(location.origin, "https://github.com");
+  assert.equal(location.pathname, "/login/oauth/authorize");
+  assert.equal(location.searchParams.get("client_id"), "client");
+  assert.equal(location.searchParams.has("repository_id"), false);
 });
 
 test("health endpoint returns CORS-safe JSON", async () => {
