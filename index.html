@@ -547,7 +547,7 @@
           }
         }
 
-        function login() { window.location.assign(`${AUTH_API}/auth/login`); }
+        function login() { window.location.assign(`${AUTH_API}/auth/login?cb=${Date.now()}`); }
 
         async function logout() {
           setBusy(true);
