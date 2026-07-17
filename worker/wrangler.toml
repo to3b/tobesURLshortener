@@ -3,6 +3,14 @@ main = "src/index.js"
 compatibility_date = "2026-07-17"
 workers_dev = true
 
+[[routes]]
+pattern = "auth.t-b.es"
+custom_domain = true
+
+[[routes]]
+pattern = "*.t-b.es/*"
+zone_name = "t-b.es"
+
 [vars]
 FRONTEND_ORIGIN = "https://t-b.es"
 AUTH_ORIGIN = "https://auth.t-b.es"
