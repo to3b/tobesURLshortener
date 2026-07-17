@@ -1,0 +1,75 @@
+name: Patch wildcard Worker
+
+on:
+  push:
+    branches:
+      - fix/wildcard-worker-routing
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/wildcard-worker-routing
+
+      - name: Patch Worker entry point
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("worker/src/index.js")
+          text = path.read_text()
+
+          import_line = 'import { handleShortRedirect, shortRedirectKey } from "./short-redirects.js";\n\n'
+          if not text.startswith(import_line):
+              text = import_line + text
+
+          old = '''      validateEnvironment(env);
+
+      if (request.method === "OPTIONS") {'''
+          new = '''      validateEnvironment(env);
+
+      const frontendHost = new URL(env.FRONTEND_ORIGIN).hostname.toLowerCase();
+      if (url.hostname.toLowerCase() === `www.${frontendHost}`) {
+        const target = new URL(`${url.pathname}${url.search}`, env.FRONTEND_ORIGIN);
+        return new Response(null, {
+          status: 308,
+          headers: { Location: target.toString(), "Cache-Control": "no-store" },
+        });
+      }
+
+      const shortKey = shortRedirectKey(url.hostname, env);
+      if (shortKey) {
+        return handleShortRedirect(request, env, shortKey);
+      }
+
+      if (request.method === "OPTIONS") {'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif 'const shortKey = shortRedirectKey(url.hostname, env);' not in text:
+              raise SystemExit("Could not locate Worker routing insertion point")
+
+          text = text.replace(
+              '  authorize.searchParams.set("repository_id", env.GITHUB_REPOSITORY_ID);\n',
+              '',
+              1,
+          )
+
+          path.write_text(text)
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add worker/src/index.js
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Handle wildcard redirects in Worker"
+          git push

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import worker, { parseCookies, serialiseRedirects, validateRedirects } from "../src/index.js";
+import { shortRedirectKey } from "../src/short-redirects.js";
 
 test("validates and sorts redirects", () => {
   assert.deepEqual(
@@ -44,6 +45,48 @@ const env = {
   GITHUB_FILE: "hello.txt",
   GITHUB_API_VERSION: "2026-03-10",
 };
+
+test("extracts short-link keys without taking over auth or apex hosts", () => {
+  assert.equal(shortRedirectKey("g.t-b.es", env), "g");
+  assert.equal(shortRedirectKey("G.T-B.ES.", env), "g");
+  assert.equal(shortRedirectKey("auth.t-b.es", env), null);
+  assert.equal(shortRedirectKey("www.t-b.es", env), null);
+  assert.equal(shortRedirectKey("t-b.es", env), null);
+  assert.equal(shortRedirectKey("example.com", env), null);
+});
+
+test("wildcard subdomains redirect through the Worker", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('{"g":"https://google.com"}', {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const response = await worker.fetch(new Request("https://g.t-b.es/"), env);
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.get("location"), "https://google.com/");
+    assert.equal(response.headers.get("cache-control"), "no-store");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("unknown wildcard subdomains return a clean 404", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('{"g":"https://google.com"}', {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+
+  try {
+    const response = await worker.fetch(new Request("https://missing.t-b.es/"), env);
+    assert.equal(response.status, 404);
+    assert.match(await response.text(), /No redirect is configured/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("health endpoint returns CORS-safe JSON", async () => {
   const response = await worker.fetch(
