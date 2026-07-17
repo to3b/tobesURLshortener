@@ -1,0 +1,16 @@
+{
+  "name": "tbes-link-desk",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "npm run check:syntax && npm test",
+    "check:syntax": "node --check assets/app.js && node --check assets/redirects.js && node scripts/validate-static.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

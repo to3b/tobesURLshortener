@@ -11,10 +11,19 @@ test("validates and sorts redirects", () => {
   );
 });
 
-test("rejects invalid names, protocols, and reserved auth hostname", () => {
+test("rejects invalid names, protocols, and reserved service hostnames", () => {
   assert.throws(() => validateRedirects({ "Bad Name": "https://example.com" }));
   assert.throws(() => validateRedirects({ ftp: "ftp://example.com" }));
   assert.throws(() => validateRedirects({ auth: "https://example.com" }));
+  assert.throws(() => validateRedirects({ www: "https://example.com" }));
+});
+
+test("bounds the redirect map and destination length", () => {
+  const tooMany = Object.fromEntries(
+    Array.from({ length: 501 }, (_, index) => [`link-${index}`, "https://example.com"]),
+  );
+  assert.throws(() => validateRedirects(tooMany), /At most 500/);
+  assert.throws(() => validateRedirects({ long: `https://example.com/${"x".repeat(2049)}` }), /at most 2048/);
 });
 
 test("serialises with stable formatting", () => {
@@ -35,7 +44,7 @@ test("parses cookie headers without splitting values on equals signs", () => {
 const env = {
   GITHUB_CLIENT_ID: "client",
   GITHUB_CLIENT_SECRET: "secret",
-  SESSION_SECRET: "a-long-random-session-secret",
+  SESSION_SECRET: "a-long-random-session-secret-32-bytes",
   FRONTEND_ORIGIN: "https://t-b.es",
   AUTH_ORIGIN: "https://auth.t-b.es",
   GITHUB_OWNER: "to3b",
@@ -68,6 +77,7 @@ test("wildcard subdomains redirect through the Worker", async () => {
     assert.equal(response.status, 302);
     assert.equal(response.headers.get("location"), "https://google.com/");
     assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -93,6 +103,22 @@ test("www redirects to the apex manager", async () => {
   const response = await worker.fetch(new Request("https://www.t-b.es/path?x=1"), env);
   assert.equal(response.status, 308);
   assert.equal(response.headers.get("location"), "https://t-b.es/path?x=1");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+});
+
+test("wildcard redirect routes allow only GET and HEAD", async () => {
+  const response = await worker.fetch(
+    new Request("https://g.t-b.es/", { method: "POST" }),
+    env,
+  );
+  assert.equal(response.status, 405);
+  assert.equal(response.headers.get("allow"), "GET, HEAD");
+});
+
+test("invalid nested wildcard hosts cannot reach authentication routes", async () => {
+  const response = await worker.fetch(new Request("https://nested.name.t-b.es/health"), env);
+  assert.equal(response.status, 404);
+  assert.equal(response.headers.get("content-type"), "text/plain; charset=utf-8");
 });
 
 test("GitHub authorization URL omits token-exchange-only parameters", async () => {
@@ -112,6 +138,7 @@ test("health endpoint returns CORS-safe JSON", async () => {
   );
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("access-control-allow-origin"), "https://t-b.es");
+  assert.equal(response.headers.get("content-security-policy"), "default-src 'none'; frame-ancestors 'none'");
   assert.deepEqual(await response.json(), { ok: true });
 });
 

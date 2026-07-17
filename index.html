@@ -1,753 +1,257 @@
 <!doctype html>
-<html lang="en">
+<html
+  lang="en"
+  data-domain="t-b.es"
+  data-auth-api="https://auth.t-b.es"
+  data-repository="to3b/tobesURLshortener"
+  data-branch="main"
+  data-file="hello.txt"
+>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <meta name="referrer" content="no-referrer" />
-    <meta name="theme-color" content="#07100b" />
+    <meta name="theme-color" content="#f4f1e9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#131a24" media="(prefers-color-scheme: dark)" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; connect-src https://api.github.com https://auth.t-b.es; img-src https://avatars.githubusercontent.com data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+      content="default-src 'none'; connect-src https://api.github.com https://auth.t-b.es; img-src https://avatars.githubusercontent.com data:; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'none'"
     />
-    <title>t-b.es redirect manager</title>
-    <style>
-      :root {
-        color-scheme: dark;
-        --bg: #050806;
-        --panel: #09100c;
-        --panel-2: #0c1510;
-        --line: #1d3526;
-        --line-strong: #31543c;
-        --text: #d9f4df;
-        --muted: #8eaa95;
-        --green: #73f59b;
-        --green-dim: #2a9d50;
-        --amber: #f4cd6a;
-        --red: #ff8d8d;
-        --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
-        font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-        background: var(--bg);
-        color: var(--text);
-      }
-
-      * { box-sizing: border-box; }
-      body {
-        min-height: 100vh;
-        margin: 0;
-        background:
-          linear-gradient(rgba(115, 245, 155, 0.025) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(115, 245, 155, 0.025) 1px, transparent 1px),
-          radial-gradient(circle at 15% 0%, rgba(42, 157, 80, 0.14), transparent 36%),
-          var(--bg);
-        background-size: 28px 28px, 28px 28px, auto, auto;
-      }
-
-      button, input { font: inherit; }
-      button, a { -webkit-tap-highlight-color: transparent; }
-      button:focus-visible, input:focus-visible, a:focus-visible {
-        outline: 2px solid var(--green);
-        outline-offset: 2px;
-      }
-
-      .shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 30px 0 48px; }
-      .terminal {
-        overflow: hidden;
-        border: 1px solid var(--line-strong);
-        border-radius: 14px;
-        background: rgba(7, 16, 11, 0.94);
-        box-shadow: var(--shadow);
-      }
-
-      .titlebar {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        min-height: 48px;
-        padding: 0 16px;
-        border-bottom: 1px solid var(--line);
-        background: #08110c;
-      }
-
-      .lights { display: flex; gap: 7px; }
-      .light { width: 10px; height: 10px; border-radius: 50%; background: #284130; }
-      .light:nth-child(1) { background: #be5d5d; }
-      .light:nth-child(2) { background: #bd9851; }
-      .light:nth-child(3) { background: #4d9d63; }
-      .window-title {
-        min-width: 0;
-        color: var(--muted);
-        font-size: 0.8rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .connection {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-left: auto;
-        color: var(--muted);
-        font-size: 0.76rem;
-      }
-      .connection-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: #53645a;
-        box-shadow: 0 0 0 3px rgba(83, 100, 90, 0.12);
-      }
-      .connection[data-connected="true"] .connection-dot {
-        background: var(--green);
-        box-shadow: 0 0 0 3px rgba(115, 245, 155, 0.12), 0 0 12px rgba(115, 245, 155, 0.5);
-      }
-
-      header {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 22px;
-        padding: 30px;
-        border-bottom: 1px solid var(--line);
-      }
-      .prompt { margin: 0 0 8px; color: var(--green); font-size: 0.8rem; }
-      h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 3.15rem); line-height: 1; letter-spacing: -0.055em; }
-      .subtitle {
-        max-width: 64ch;
-        margin: 12px 0 0;
-        color: var(--muted);
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        line-height: 1.55;
-      }
-      .summary {
-        flex: 0 0 auto;
-        padding: 10px 13px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        color: var(--muted);
-        background: var(--panel);
-        font-size: 0.8rem;
-      }
-      .summary strong { color: var(--text); }
-
-      .workspace { display: grid; grid-template-columns: minmax(260px, 330px) minmax(0, 1fr); min-height: 590px; }
-      aside { padding: 24px; border-right: 1px solid var(--line); background: rgba(8, 17, 12, 0.72); }
-      .content { min-width: 0; padding: 24px; }
-      .section + .section { margin-top: 28px; padding-top: 24px; border-top: 1px dashed var(--line); }
-      .section-label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin: 0 0 14px;
-        color: var(--green);
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.09em;
-      }
-      .section-label::before { content: ">"; }
-
-      .identity {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        min-height: 44px;
-        padding: 9px 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-      .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--panel-2); }
-      .identity-copy { min-width: 0; }
-      .identity-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .identity-detail { display: block; margin-top: 2px; color: var(--muted); font-size: 0.7rem; }
-
-      .field { display: grid; gap: 7px; margin-top: 13px; }
-      label { color: var(--muted); font-size: 0.76rem; }
-      input {
-        width: 100%;
-        min-height: 42px;
-        padding: 9px 11px;
-        border: 1px solid var(--line-strong);
-        border-radius: 7px;
-        background: #050a07;
-        color: var(--text);
-      }
-      input::placeholder { color: #526559; }
-      .input-affix { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; }
-      .input-affix input { border-radius: 7px 0 0 7px; }
-      .affix {
-        display: grid;
-        place-items: center;
-        padding: 0 10px;
-        border: 1px solid var(--line-strong);
-        border-left: 0;
-        border-radius: 0 7px 7px 0;
-        color: var(--muted);
-        background: var(--panel-2);
-        font-size: 0.78rem;
-      }
-
-      .button-row { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 14px; }
-      button {
-        min-height: 38px;
-        padding: 8px 12px;
-        border: 1px solid var(--line-strong);
-        border-radius: 7px;
-        background: var(--panel-2);
-        color: var(--text);
-        cursor: pointer;
-      }
-      button:hover:not(:disabled) { border-color: var(--green-dim); background: #112219; }
-      button:disabled { cursor: not-allowed; opacity: 0.45; }
-      .primary { border-color: var(--green-dim); background: #10301c; color: var(--green); }
-      .danger { color: var(--red); }
-      .ghost { background: transparent; }
-      .help {
-        margin: 10px 0 0;
-        color: var(--muted);
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        font-size: 0.78rem;
-        line-height: 1.5;
-      }
-      .help a, .target, .short-link { color: var(--green); text-decoration: none; }
-      .help a:hover, .target:hover, .short-link:hover { text-decoration: underline; }
-
-      .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-      .toolbar input { min-width: 0; }
-      .toolbar .refresh { flex: 0 0 auto; }
-      .redirect-list { display: grid; gap: 9px; }
-      .redirect-row {
-        display: grid;
-        grid-template-columns: minmax(130px, 0.75fr) minmax(190px, 1.75fr) auto;
-        align-items: center;
-        gap: 14px;
-        padding: 13px 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-      }
-      .redirect-row:hover { border-color: var(--line-strong); }
-      .short-link, .target { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .short-link { font-weight: 700; }
-      .target { color: var(--muted); font-size: 0.79rem; }
-      .row-actions { display: flex; gap: 7px; }
-      .row-actions button { min-height: 32px; padding: 5px 9px; font-size: 0.73rem; }
-      .empty {
-        padding: 38px 18px;
-        border: 1px dashed var(--line-strong);
-        border-radius: 8px;
-        color: var(--muted);
-        text-align: center;
-        font-family: ui-sans-serif, system-ui, sans-serif;
-      }
-
-      .publish-bar { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding-top: 18px; border-top: 1px dashed var(--line); }
-      .publish-bar .field { flex: 1; margin: 0; }
-      .publish-bar button { align-self: end; min-height: 42px; }
-      .status { min-height: 22px; margin: 14px 0 0; color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
-      .status[data-tone="success"] { color: var(--green); }
-      .status[data-tone="warning"] { color: var(--amber); }
-      .status[data-tone="error"] { color: var(--red); }
-      .busy::after {
-        content: "";
-        display: inline-block;
-        width: 0.65em;
-        height: 0.65em;
-        margin-left: 8px;
-        border: 1px solid currentColor;
-        border-right-color: transparent;
-        border-radius: 50%;
-        animation: spin 650ms linear infinite;
-      }
-      @keyframes spin { to { transform: rotate(360deg); } }
-
-      @media (max-width: 820px) {
-        .workspace { grid-template-columns: 1fr; }
-        aside { border-right: 0; border-bottom: 1px solid var(--line); }
-        header { align-items: flex-start; flex-direction: column; }
-        .redirect-row { grid-template-columns: minmax(0, 1fr) auto; }
-        .target { grid-column: 1 / -1; grid-row: 2; }
-        .row-actions { grid-column: 2; grid-row: 1; }
-      }
-      @media (max-width: 560px) {
-        .shell { width: min(100% - 18px, 1180px); padding-top: 9px; }
-        .terminal { border-radius: 10px; }
-        header, aside, .content { padding: 18px; }
-        .connection-label { display: none; }
-        .publish-bar { align-items: stretch; flex-direction: column; }
-        .publish-bar button { align-self: stretch; }
-      }
-    </style>
+    <meta
+      name="description"
+      content="The private control desk for t-b.es short links."
+    />
+    <title>t-b.es — link desk</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+    <script type="module" src="assets/app.js"></script>
   </head>
   <body>
-    <div class="shell">
-      <div class="terminal">
-        <div class="titlebar">
-          <div class="lights" aria-hidden="true"><span class="light"></span><span class="light"></span><span class="light"></span></div>
-          <div class="window-title">t-b.es / redirect-manager</div>
-          <div class="connection" id="connection" data-connected="false">
-            <span class="connection-dot" aria-hidden="true"></span>
-            <span class="connection-label" id="connection-label">read-only</span>
-          </div>
-        </div>
+    <a class="skip-link" href="#registry">Skip to link registry</a>
 
-        <header>
-          <div>
-            <p class="prompt">t-b.es:~$ redirect manager</p>
-            <h1>Manage short links.</h1>
-            <p class="subtitle">Add, update, or remove redirects without handling a personal access token. Changes are staged locally and published to <code>hello.txt</code> only when you commit them.</p>
+    <div class="site-shell">
+      <header class="topbar" aria-label="Site header">
+        <a class="brand" href="https://t-b.es/" aria-label="t-b.es home">
+          <span class="brand-mark" aria-hidden="true">t·b</span>
+          <span class="brand-copy">
+            <strong>t-b.es</strong>
+            <small>link desk</small>
+          </span>
+        </a>
+
+        <div class="connection-pill" id="connection" data-connected="false">
+          <span class="connection-indicator" aria-hidden="true"></span>
+          <span id="connection-label">Read-only</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero" aria-labelledby="page-title">
+          <div class="hero-copy">
+            <p class="eyebrow">Personal link registry</p>
+            <h1 id="page-title">Short links,<br /><em>kept tidy.</em></h1>
+            <p class="hero-description">
+              One quiet place to review, stage, and publish every <code>t-b.es</code>
+              redirect. Public to read; GitHub-protected to change.
+            </p>
           </div>
-          <div class="summary" aria-live="polite"><strong id="redirect-count">0</strong> redirects · <strong id="change-count">0</strong> pending</div>
-        </header>
+
+          <dl class="stats" aria-label="Registry summary">
+            <div class="stat">
+              <dt>Live links</dt>
+              <dd id="redirect-count">—</dd>
+            </div>
+            <div class="stat" data-tone="accent">
+              <dt>Staged</dt>
+              <dd id="change-count">0</dd>
+            </div>
+            <div class="stat">
+              <dt>Branch</dt>
+              <dd class="stat-code">main</dd>
+            </div>
+          </dl>
+        </section>
 
         <div class="workspace">
-          <aside>
-            <section class="section">
-              <h2 class="section-label">GitHub access</h2>
-              <div class="identity" id="identity">
+          <aside class="control-stack" aria-label="Link controls">
+            <section class="card account-card" aria-labelledby="account-title">
+              <div class="card-heading">
+                <div>
+                  <p class="kicker">Access</p>
+                  <h2 id="account-title">GitHub session</h2>
+                </div>
+                <span class="status-badge" id="account-badge">Guest</span>
+              </div>
+
+              <div class="identity">
+                <div class="avatar-placeholder" id="avatar-placeholder" aria-hidden="true">G</div>
                 <img class="avatar" id="avatar" alt="" hidden />
                 <div class="identity-copy">
-                  <strong class="identity-name" id="identity-name">Not signed in</strong>
-                  <span class="identity-detail" id="identity-detail">Public read-only mode</span>
+                  <strong id="identity-name">Not signed in</strong>
+                  <span id="identity-detail">You can browse and stage changes.</span>
                 </div>
               </div>
-              <div class="button-row">
-                <button class="primary" id="login-button" type="button">Sign in with GitHub</button>
-                <button class="ghost" id="logout-button" type="button" disabled>Sign out</button>
+
+              <div class="button-group">
+                <button class="button button-primary" id="login-button" type="button">
+                  Sign in with GitHub
+                </button>
+                <button class="button button-secondary" id="logout-button" type="button" disabled>
+                  Sign out
+                </button>
               </div>
-              <p class="help">GitHub credentials stay in the authentication service. This page receives only an HTTP-only session cookie and a temporary anti-forgery token; no personal access token is stored in browser storage.</p>
+
+              <p class="fine-print">
+                Credentials stay inside the Cloudflare authentication service. This page
+                never receives or stores your GitHub token.
+              </p>
             </section>
 
-            <section class="section">
-              <h2 class="section-label">Add or update</h2>
-              <form id="redirect-form">
+            <section class="card editor-card" aria-labelledby="editor-title">
+              <div class="card-heading">
+                <div>
+                  <p class="kicker" id="editor-kicker">Create</p>
+                  <h2 id="editor-title">Stage a short link</h2>
+                </div>
+                <button class="text-button" id="cancel-edit-button" type="button" hidden>
+                  Cancel edit
+                </button>
+              </div>
+
+              <form id="redirect-form" novalidate>
                 <div class="field">
                   <label for="key">Short name</label>
-                  <div class="input-affix">
-                    <input id="key" name="key" autocomplete="off" spellcheck="false" placeholder="docs" required />
-                    <span class="affix">.t-b.es</span>
+                  <div class="input-with-suffix">
+                    <input
+                      id="key"
+                      name="key"
+                      autocomplete="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      placeholder="docs"
+                      aria-describedby="key-help"
+                      maxlength="80"
+                      required
+                    />
+                    <span aria-hidden="true">.t-b.es</span>
                   </div>
+                  <p class="field-help" id="key-help">Hyphens are allowed between letters or numbers.</p>
                 </div>
+
                 <div class="field">
-                  <label for="destination">Destination URL</label>
-                  <input id="destination" name="destination" type="url" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://example.com/page" required />
+                  <label for="destination">Destination</label>
+                  <input
+                    id="destination"
+                    name="destination"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="url"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    placeholder="https://example.com/page"
+                    maxlength="2048"
+                    required
+                  />
                 </div>
-                <div class="button-row">
-                  <button class="primary" id="stage-button" type="submit">Stage redirect</button>
-                  <button class="ghost" id="clear-button" type="button">Clear</button>
+
+                <div class="button-group">
+                  <button class="button button-primary" id="stage-button" type="submit">
+                    Stage link
+                  </button>
+                  <button class="button button-secondary" id="clear-button" type="button">
+                    Clear
+                  </button>
                 </div>
               </form>
-              <p class="help">Names may use lowercase letters, numbers, and hyphens. <code>auth</code> is reserved for the sign-in service.</p>
             </section>
           </aside>
 
-          <main class="content">
-            <div class="toolbar">
-              <input id="search" type="search" autocomplete="off" placeholder="Filter redirects…" aria-label="Filter redirects" />
-              <button class="refresh" id="reload-button" type="button">Reload</button>
-            </div>
-            <div class="redirect-list" id="redirect-list" aria-live="polite"></div>
-            <div class="publish-bar">
-              <div class="field">
-                <label for="commit-message">Commit message</label>
-                <input id="commit-message" value="Update redirects from web manager" maxlength="72" />
+          <section class="card registry-card" id="registry" aria-labelledby="registry-title">
+            <header class="registry-header">
+              <div>
+                <p class="kicker">Directory</p>
+                <h2 id="registry-title">Your redirects</h2>
               </div>
-              <button class="primary" id="publish-button" type="button" disabled>Publish changes</button>
+
+              <div class="toolbar">
+                <label class="search-field" for="search">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="m21 21-4.35-4.35m2.35-5.4A7.75 7.75 0 1 1 3.5 11.25a7.75 7.75 0 0 1 15.5 0Z" />
+                  </svg>
+                  <span class="visually-hidden">Filter redirects</span>
+                  <input
+                    id="search"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="Find a link"
+                  />
+                  <kbd aria-hidden="true">⌘ K</kbd>
+                </label>
+                <button class="button button-icon" id="reload-button" type="button" aria-label="Reload redirects" title="Reload redirects">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M20 11a8 8 0 1 0-2.34 5.66M20 4v7h-7" />
+                  </svg>
+                </button>
+              </div>
+            </header>
+
+            <div class="list-heading" aria-hidden="true">
+              <span>Short link</span>
+              <span>Destination</span>
+              <span>Actions</span>
             </div>
-            <p class="status" id="status" role="status" aria-live="polite">Checking GitHub session…</p>
-          </main>
+
+            <div class="redirect-list" id="redirect-list" aria-live="polite" aria-busy="true">
+              <div class="loading-row"><span></span><span></span><span></span></div>
+              <div class="loading-row"><span></span><span></span><span></span></div>
+              <div class="loading-row"><span></span><span></span><span></span></div>
+            </div>
+
+            <section class="changes-panel" id="changes-panel" aria-labelledby="changes-title" hidden>
+              <div class="changes-heading">
+                <div>
+                  <p class="kicker">Draft</p>
+                  <h3 id="changes-title">Staged changes</h3>
+                </div>
+                <button class="text-button" id="discard-button" type="button">Discard all</button>
+              </div>
+              <div class="change-list" id="change-list"></div>
+            </section>
+
+            <footer class="publish-panel">
+              <div class="field publish-field">
+                <label for="commit-message">Commit message</label>
+                <input
+                  id="commit-message"
+                  value="Update redirects from link desk"
+                  maxlength="72"
+                  autocomplete="off"
+                />
+              </div>
+              <button class="button button-publish" id="publish-button" type="button" disabled>
+                <span id="publish-label">Publish changes</span>
+                <kbd aria-hidden="true">⌘ S</kbd>
+              </button>
+            </footer>
+
+            <div class="notice" id="status" role="status" aria-live="polite" data-tone="neutral">
+              <span class="notice-dot" aria-hidden="true"></span>
+              <span id="status-message">Checking your GitHub session…</span>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
+
+      <footer class="site-footer">
+        <p>t-b.es · a deliberately small redirect service</p>
+        <a href="https://github.com/to3b/tobesURLshortener" target="_blank" rel="noopener noreferrer">
+          View source on GitHub
+        </a>
+      </footer>
     </div>
 
-    <script>
-      (() => {
-        "use strict";
-
-        const OWNER = "to3b";
-        const REPO = "tobesURLshortener";
-        const BRANCH = "main";
-        const FILE = "hello.txt";
-        const DOMAIN = "t-b.es";
-        const AUTH_API = "https://auth.t-b.es";
-        const GITHUB_API = "https://api.github.com";
-        const FILE_ENDPOINT = `${GITHUB_API}/repos/${OWNER}/${REPO}/contents/${FILE}`;
-        const RESERVED_KEYS = new Set(["auth"]);
-
-        const state = {
-          authenticated: false,
-          user: null,
-          csrfToken: "",
-          redirects: {},
-          baseline: {},
-          sha: "",
-          filter: "",
-          busy: false,
-        };
-
-        const elements = {
-          connection: document.getElementById("connection"),
-          connectionLabel: document.getElementById("connection-label"),
-          avatar: document.getElementById("avatar"),
-          identityName: document.getElementById("identity-name"),
-          identityDetail: document.getElementById("identity-detail"),
-          loginButton: document.getElementById("login-button"),
-          logoutButton: document.getElementById("logout-button"),
-          form: document.getElementById("redirect-form"),
-          key: document.getElementById("key"),
-          destination: document.getElementById("destination"),
-          clearButton: document.getElementById("clear-button"),
-          search: document.getElementById("search"),
-          reloadButton: document.getElementById("reload-button"),
-          list: document.getElementById("redirect-list"),
-          redirectCount: document.getElementById("redirect-count"),
-          changeCount: document.getElementById("change-count"),
-          commitMessage: document.getElementById("commit-message"),
-          publishButton: document.getElementById("publish-button"),
-          status: document.getElementById("status"),
-        };
-
-        function canonicalise(redirects) {
-          return Object.fromEntries(Object.entries(redirects).sort(([a], [b]) => a.localeCompare(b)));
-        }
-        function serialise(redirects) { return `${JSON.stringify(canonicalise(redirects), null, 2)}\n`; }
-        function clone(value) { return JSON.parse(JSON.stringify(value)); }
-        function decodeBase64(value) {
-          const binary = atob(value.replace(/\s/g, ""));
-          return new TextDecoder().decode(Uint8Array.from(binary, (character) => character.charCodeAt(0)));
-        }
-        function normaliseKey(value) {
-          let key = String(value || "").trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0];
-          const suffix = `.${DOMAIN}`;
-          if (key.endsWith(suffix)) key = key.slice(0, -suffix.length);
-          return key;
-        }
-        function validateKey(key) {
-          return /^(?=.{1,63}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(key) && !RESERVED_KEYS.has(key);
-        }
-        function normaliseDestination(value) {
-          const destination = new URL(String(value || "").trim());
-          if (!["http:", "https:"].includes(destination.protocol)) throw new Error("Destination must use http:// or https://.");
-          return destination.href;
-        }
-        function pendingCount() {
-          const keys = new Set([...Object.keys(state.baseline), ...Object.keys(state.redirects)]);
-          let count = 0;
-          for (const key of keys) if (state.baseline[key] !== state.redirects[key]) count += 1;
-          return count;
-        }
-        function isDirty() { return serialise(state.redirects) !== serialise(state.baseline); }
-        function setStatus(message, tone = "") {
-          elements.status.textContent = message;
-          elements.status.dataset.tone = tone;
-        }
-        function setBusy(busy, label = "") {
-          state.busy = busy;
-          elements.loginButton.disabled = busy || state.authenticated;
-          elements.logoutButton.disabled = busy || !state.authenticated;
-          elements.reloadButton.disabled = busy;
-          elements.publishButton.disabled = busy || !state.authenticated || !isDirty();
-          elements.reloadButton.classList.toggle("busy", busy && label === "reload");
-          elements.publishButton.classList.toggle("busy", busy && label === "publish");
-        }
-
-        async function parseResponse(response) {
-          const data = await response.json().catch(() => ({}));
-          if (!response.ok) {
-            const error = new Error(data.message || `Request failed with HTTP ${response.status}.`);
-            error.status = response.status;
-            error.code = data.error || "request_failed";
-            throw error;
-          }
-          return data;
-        }
-
-        async function authRequest(path, options = {}) {
-          const headers = { ...(options.headers || {}) };
-          if (options.body) headers["Content-Type"] = "application/json";
-          const response = await fetch(`${AUTH_API}${path}`, {
-            ...options,
-            headers,
-            credentials: "include",
-          });
-          return parseResponse(response);
-        }
-
-        async function publicGithubRequest(url) {
-          const response = await fetch(url, {
-            headers: {
-              Accept: "application/vnd.github+json",
-              "X-GitHub-Api-Version": "2026-03-10",
-            },
-          });
-          return parseResponse(response);
-        }
-
-        function parseRedirectFile(file) {
-          const parsed = JSON.parse(decodeBase64(file.content));
-          if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error("hello.txt must contain a JSON object.");
-          const redirects = {};
-          for (const [rawKey, rawDestination] of Object.entries(parsed)) {
-            const key = normaliseKey(rawKey);
-            if (!validateKey(key) || typeof rawDestination !== "string") throw new Error(`Invalid redirect entry: ${rawKey}`);
-            redirects[key] = normaliseDestination(rawDestination);
-          }
-          return canonicalise(redirects);
-        }
-
-        async function checkSession() {
-          try {
-            const session = await authRequest("/api/session");
-            state.authenticated = true;
-            state.user = session.user;
-            state.csrfToken = session.csrfToken;
-          } catch (error) {
-            if (error.status !== 401) console.error(error);
-            state.authenticated = false;
-            state.user = null;
-            state.csrfToken = "";
-          }
-          renderConnection();
-          renderSummary();
-        }
-
-        async function loadRedirects({ preserveStatus = false } = {}) {
-          if (isDirty() && !confirm("Reloading will discard your staged changes. Continue?")) return;
-          setBusy(true, "reload");
-          if (!preserveStatus) setStatus("Loading redirects from GitHub…");
-          try {
-            let redirects;
-            let sha;
-            if (state.authenticated) {
-              const data = await authRequest("/api/redirects");
-              redirects = canonicalise(data.redirects);
-              sha = data.sha;
-            } else {
-              const file = await publicGithubRequest(`${FILE_ENDPOINT}?ref=${encodeURIComponent(BRANCH)}`);
-              redirects = parseRedirectFile(file);
-              sha = file.sha;
-            }
-            state.redirects = clone(redirects);
-            state.baseline = clone(redirects);
-            state.sha = sha;
-            render();
-            setStatus(`Loaded ${Object.keys(redirects).length} redirects${state.authenticated ? ` as @${state.user.login}` : " in read-only mode"}.`, "success");
-          } catch (error) {
-            console.error(error);
-            if (error.status === 401) {
-              state.authenticated = false;
-              state.user = null;
-              state.csrfToken = "";
-              renderConnection();
-            }
-            setStatus(`Could not load redirects: ${error.message}`, "error");
-          } finally {
-            setBusy(false);
-          }
-        }
-
-        function login() { window.location.assign(`${AUTH_API}/auth/login?cb=${Date.now()}`); }
-
-        async function logout() {
-          setBusy(true);
-          setStatus("Signing out…");
-          try {
-            await authRequest("/auth/logout", { method: "POST", headers: { "X-CSRF-Token": state.csrfToken } });
-          } catch (error) {
-            console.error(error);
-          } finally {
-            state.authenticated = false;
-            state.user = null;
-            state.csrfToken = "";
-            renderConnection();
-            renderSummary();
-            setBusy(false);
-            setStatus("Signed out. Staged changes remain in this tab.", "warning");
-          }
-        }
-
-        function stageRedirect(event) {
-          event.preventDefault();
-          const key = normaliseKey(elements.key.value);
-          if (!validateKey(key)) {
-            setStatus(key === "auth" ? "auth.t-b.es is reserved for the sign-in service." : "Use 1–63 lowercase letters, numbers, or hyphens; do not start or end with a hyphen.", "error");
-            elements.key.focus();
-            return;
-          }
-          let destination;
-          try { destination = normaliseDestination(elements.destination.value); }
-          catch (error) { setStatus(error.message, "error"); elements.destination.focus(); return; }
-          const existed = Object.prototype.hasOwnProperty.call(state.redirects, key);
-          state.redirects[key] = destination;
-          state.redirects = canonicalise(state.redirects);
-          clearForm();
-          render();
-          setStatus(`${existed ? "Updated" : "Added"} ${key}.${DOMAIN}. Publish to make it live.`, "warning");
-        }
-
-        function clearForm() { elements.form.reset(); elements.key.focus(); }
-        function editRedirect(key) {
-          elements.key.value = key;
-          elements.destination.value = state.redirects[key];
-          elements.key.focus();
-          elements.key.select();
-          setStatus(`Editing ${key}.${DOMAIN}.`);
-        }
-        function removeRedirect(key) {
-          if (!Object.prototype.hasOwnProperty.call(state.redirects, key)) return;
-          delete state.redirects[key];
-          render();
-          setStatus(`Removed ${key}.${DOMAIN} locally. Publish to make it live.`, "warning");
-        }
-
-        async function publish() {
-          if (!state.authenticated) { setStatus("Sign in with GitHub before publishing.", "warning"); return; }
-          if (!isDirty()) { setStatus("There are no staged changes to publish."); return; }
-          const message = elements.commitMessage.value.trim();
-          if (!message) { setStatus("Enter a commit message.", "warning"); elements.commitMessage.focus(); return; }
-          setBusy(true, "publish");
-          setStatus("Checking for newer changes before publishing…");
-          try {
-            const data = await authRequest("/api/redirects", {
-              method: "PUT",
-              headers: { "X-CSRF-Token": state.csrfToken },
-              body: JSON.stringify({ redirects: state.redirects, sha: state.sha, message }),
-            });
-            state.sha = data.sha;
-            state.redirects = canonicalise(data.redirects);
-            state.baseline = clone(state.redirects);
-            render();
-            setStatus("Redirects published. GitHub Pages may take a short moment to deploy the new map.", "success");
-          } catch (error) {
-            console.error(error);
-            if (error.status === 401) {
-              state.authenticated = false;
-              state.user = null;
-              state.csrfToken = "";
-              renderConnection();
-              setStatus("Your GitHub session expired. Sign in again; staged changes are still here.", "warning");
-            } else {
-              setStatus(`Publish failed: ${error.message}`, "error");
-            }
-          } finally {
-            setBusy(false);
-          }
-        }
-
-        function renderConnection() {
-          elements.connection.dataset.connected = String(state.authenticated);
-          elements.connectionLabel.textContent = state.authenticated ? `@${state.user.login}` : "read-only";
-          elements.loginButton.disabled = state.busy || state.authenticated;
-          elements.logoutButton.disabled = state.busy || !state.authenticated;
-          if (state.authenticated) {
-            elements.identityName.textContent = state.user.name || state.user.login;
-            elements.identityDetail.textContent = `@${state.user.login} · secure session`;
-            if (state.user.avatarUrl) {
-              elements.avatar.src = state.user.avatarUrl;
-              elements.avatar.alt = `${state.user.login} avatar`;
-              elements.avatar.hidden = false;
-            }
-          } else {
-            elements.identityName.textContent = "Not signed in";
-            elements.identityDetail.textContent = "Public read-only mode";
-            elements.avatar.hidden = true;
-            elements.avatar.removeAttribute("src");
-          }
-        }
-
-        function renderSummary() {
-          const changes = pendingCount();
-          elements.redirectCount.textContent = Object.keys(state.redirects).length;
-          elements.changeCount.textContent = changes;
-          elements.publishButton.disabled = state.busy || !state.authenticated || changes === 0;
-          elements.publishButton.textContent = changes === 1 ? "Publish 1 change" : `Publish ${changes} changes`;
-        }
-
-        function makeButton(label, className, handler) {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.textContent = label;
-          button.className = className;
-          button.addEventListener("click", handler);
-          return button;
-        }
-
-        function renderList() {
-          elements.list.replaceChildren();
-          const query = state.filter.trim().toLowerCase();
-          const entries = Object.entries(state.redirects).filter(([key, destination]) => !query || key.includes(query) || destination.toLowerCase().includes(query));
-          if (entries.length === 0) {
-            const empty = document.createElement("div");
-            empty.className = "empty";
-            empty.textContent = query ? "No redirects match this filter." : "No redirects configured.";
-            elements.list.append(empty);
-            return;
-          }
-          for (const [key, destination] of entries) {
-            const row = document.createElement("article");
-            row.className = "redirect-row";
-            const shortLink = document.createElement("a");
-            shortLink.className = "short-link";
-            shortLink.href = `https://${key}.${DOMAIN}`;
-            shortLink.target = "_blank";
-            shortLink.rel = "noreferrer";
-            shortLink.textContent = `${key}.${DOMAIN}`;
-            shortLink.title = shortLink.href;
-            const target = document.createElement("a");
-            target.className = "target";
-            target.href = destination;
-            target.target = "_blank";
-            target.rel = "noreferrer";
-            target.textContent = destination;
-            target.title = destination;
-            const actions = document.createElement("div");
-            actions.className = "row-actions";
-            actions.append(makeButton("Edit", "ghost", () => editRedirect(key)), makeButton("Remove", "ghost danger", () => removeRedirect(key)));
-            row.append(shortLink, target, actions);
-            elements.list.append(row);
-          }
-        }
-
-        function render() { renderConnection(); renderSummary(); renderList(); }
-
-        function consumeAuthResult() {
-          const url = new URL(window.location.href);
-          const result = url.searchParams.get("auth");
-          if (!result) return "";
-          url.searchParams.delete("auth");
-          history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
-          const messages = {
-            success: "GitHub sign-in completed.",
-            cancelled: "GitHub sign-in was cancelled.",
-            account_not_allowed: "This GitHub account is not allowed to manage t-b.es.",
-            expired_state: "The sign-in attempt expired. Try again.",
-            invalid_state: "The sign-in attempt could not be verified. Try again.",
-            github_authorization_failed: "GitHub authorization failed. Try again.",
-          };
-          return messages[result] || "GitHub sign-in did not complete.";
-        }
-
-        elements.loginButton.addEventListener("click", login);
-        elements.logoutButton.addEventListener("click", logout);
-        elements.form.addEventListener("submit", stageRedirect);
-        elements.clearButton.addEventListener("click", clearForm);
-        elements.reloadButton.addEventListener("click", () => loadRedirects());
-        elements.publishButton.addEventListener("click", publish);
-        elements.search.addEventListener("input", () => { state.filter = elements.search.value; renderList(); });
-        window.addEventListener("beforeunload", (event) => { if (isDirty()) { event.preventDefault(); event.returnValue = ""; } });
-        window.addEventListener("keydown", (event) => {
-          if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); publish(); }
-        });
-
-        (async () => {
-          const authMessage = consumeAuthResult();
-          render();
-          await checkSession();
-          await loadRedirects({ preserveStatus: true });
-          if (authMessage && !state.authenticated) setStatus(authMessage, "warning");
-        })();
-      })();
-    </script>
+    <noscript>
+      <div class="noscript">JavaScript is required to load and manage this link registry.</div>
+    </noscript>
   </body>
 </html>

@@ -1,168 +1,160 @@
-# t-b.es URL shortener
+# t-b.es
 
-A deliberately small redirect service for `t-b.es`. The apex manager is hosted on GitHub Pages, while a Cloudflare Worker handles both wildcard short links and GitHub App authentication.
+A small, owner-managed URL shortener for `t-b.es`. GitHub Pages serves the link desk, while one Cloudflare Worker resolves wildcard short links and handles GitHub App authentication.
 
-## How redirects work
+## What it does
 
-1. A request such as `https://g.t-b.es/` matches the Worker route `*.t-b.es/*`.
-2. The Worker extracts the key `g` from the hostname.
-3. It loads the JSON redirect map from `main/hello.txt`. The map fetch is cached at the Cloudflare edge for 60 seconds.
-4. A valid destination is returned as a temporary HTTP `302` redirect with `Cache-Control: no-store`.
-5. Unknown names return a plain `404` response instead of reaching the GitHub Pages origin.
+- `https://g.t-b.es/` resolves at the Cloudflare edge from the redirect map in `hello.txt`.
+- `https://t-b.es/` shows a public, read-only directory and lets changes be staged locally.
+- `https://auth.t-b.es/` signs the repository owner in with a repository-scoped GitHub App.
+- Publishing updates only `main/hello.txt`, with a SHA check to prevent overwriting newer changes.
 
-Using the Worker for wildcard hosts avoids relying on unsupported wildcard GitHub Pages custom domains and prevents permanent browser-cached redirect loops.
+Redirects use temporary `302` responses with `Cache-Control: no-store`. The Worker caches the source map at the edge for 60 seconds, so a published link normally updates within about a minute.
 
-The repository still contains `404.html` as a static fallback, but production wildcard traffic should be handled by the Worker route.
+## Architecture
 
-## Redirect manager
+| Part | Host | Responsibility |
+| --- | --- | --- |
+| GitHub Pages | `t-b.es` | Static link desk and branded fallback page |
+| Cloudflare Worker | `*.t-b.es/*` | Short-link lookup and redirects |
+| Cloudflare Worker | `auth.t-b.es` | GitHub OAuth, encrypted session, and Contents API proxy |
+| GitHub | `main/hello.txt` | Redirect source of truth |
 
-The root `https://t-b.es/` page can:
+The browser never receives a GitHub access token. Access and refresh tokens live only inside an encrypted, HTTP-only cookie scoped to `auth.t-b.es`. The link desk receives basic account details and a temporary CSRF token. Staged redirect drafts may be kept in `sessionStorage` so they survive the OAuth round trip; the map is already public, and no credential is stored there.
 
-- load and filter the current redirects;
-- stage additions, updates, and removals locally;
-- validate subdomain names and HTTP/HTTPS destinations;
-- detect if `hello.txt` changed before publishing; and
-- commit the updated JSON directly to `main/hello.txt`.
+## Link desk UI system
 
-Reading redirects remains public. Publishing uses **Sign in with GitHub** through a repository-scoped GitHub App and the same Cloudflare Worker at `https://auth.t-b.es`.
+The frontend intentionally has no framework or build step. Its small design system lives in `assets/styles.css` and includes:
 
-The browser never receives a GitHub access token. The Worker stores GitHub's user access token and refresh token inside an encrypted, HTTP-only cookie scoped to `auth.t-b.es`. The frontend receives only basic account information and a temporary CSRF token. GitHub user access tokens are refreshed automatically when they approach expiration.
+- shared colour, spacing, type, radius, and elevation tokens;
+- reusable card, button, form, badge, notice, and list-row components;
+- light and dark colour schemes;
+- responsive desktop, tablet, and phone layouts; and
+- reduced-motion and keyboard-focus support.
 
-## One-time GitHub App setup
+Pure redirect parsing and draft-diff logic is isolated in `assets/redirects.js` and covered by Node tests. `assets/app.js` contains the DOM and API controller.
 
-### 1. Create the GitHub App
+## Redirect rules
 
-Open GitHub **Settings → Developer settings → GitHub Apps → New GitHub App** and use:
+`hello.txt` is a JSON object whose keys become subdomains:
+
+```json
+{
+  "g": "https://google.com/",
+  "example": "https://example.com/"
+}
+```
+
+Names must:
+
+- contain 1–63 lowercase letters, numbers, or hyphens;
+- start and end with a letter or number; and
+- not be `auth` or `www`, which are reserved by the service.
+
+Destinations must be complete HTTP or HTTPS URLs and may contain at most 2,048 characters. The map is capped at 500 redirects and 64 KiB.
+
+## Local checks
+
+Node.js 22 or newer is required.
+
+```bash
+npm install
+npm run check
+
+cd worker
+npm install
+npm run check
+npm run check:deploy
+```
+
+The root check validates local asset references, duplicate HTML IDs, fallback-page JavaScript, `CNAME`, the redirect map, and frontend unit tests. The Worker check runs syntax and route tests. `check:deploy` asks Wrangler to build and validate the Cloudflare bundle without deploying it.
+
+To preview the static site locally:
+
+```bash
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`. Authentication calls still target production `auth.t-b.es`, whose origin policy accepts only `https://t-b.es`, so sign-in and publishing are deliberately unavailable from the local preview.
+
+## GitHub App setup
+
+Create a GitHub App under **Settings → Developer settings → GitHub Apps** with these settings:
 
 | Setting | Value |
 | --- | --- |
-| GitHub App name | `t-b.es Redirect Manager` or another unique name |
 | Homepage URL | `https://t-b.es/` |
 | Callback URL | `https://auth.t-b.es/auth/callback` |
-| Webhook | Disable **Active**; no webhook is used |
-| Repository permissions → Contents | **Read and write** |
+| Webhook | Disabled |
+| Repository permissions → Contents | Read and write |
 | Account permissions | None |
-| Where can this GitHub App be installed? | **Only on this account** |
+| Installation | Only this account, only `to3b/tobesURLshortener` |
 
-Keep **user-to-server token expiration** enabled. It is normally enabled by default and allows the Worker to rotate short-lived access tokens using refresh tokens.
+Keep user-to-server token expiration enabled. The Worker refreshes expiring user access tokens and restricts the token exchange to repository ID `1061521737`. It also checks that the authenticated login is `to3b` before allowing access.
 
-After creating the app:
+## Cloudflare deployment
 
-1. Copy its **Client ID**.
-2. Generate and copy one **Client secret**.
-3. Select **Install App**.
-4. Install it only on `to3b/tobesURLshortener`.
-
-The access-token request is additionally restricted to repository ID `1061521737`, and the Worker permits only the GitHub login `to3b`.
-
-## Deploy the Worker
-
-The Worker source is under `worker/`.
+The Worker configuration is in `worker/wrangler.jsonc`. It declares the public routes and the names of the three required secrets, but never their values.
 
 ```bash
 cd worker
 npm install
 npx wrangler login
-```
-
-Add the required encrypted secrets:
-
-```bash
 npx wrangler secret put GITHUB_CLIENT_ID
 npx wrangler secret put GITHUB_CLIENT_SECRET
 openssl rand -base64 32 | npx wrangler secret put SESSION_SECRET
-```
-
-On Windows Command Prompt, paste hidden secret prompts with right-click or **Shift+Insert** rather than `Ctrl+V`.
-
-Then deploy:
-
-```bash
 npm run check
+npm run check:deploy
 npm run deploy
 ```
 
-Cloudflare stores Worker secrets separately from the repository. Do not put the client secret or session secret in `wrangler.toml`, `.dev.vars.example`, GitHub commits, or Pages files.
+`SESSION_SECRET` must contain at least 32 characters. Local development values belong in `worker/.dev.vars`, using `.dev.vars.example` as a template. `.dev.vars*`, `.env*`, build output, and Wrangler state are ignored by Git.
 
-## Cloudflare routes and DNS
+Run `npm run types` after changing Worker bindings or declared secrets.
 
-`worker/wrangler.toml` deploys two routes:
+### Routes and DNS
 
-```toml
-[[routes]]
-pattern = "auth.t-b.es"
-custom_domain = true
+Wrangler deploys:
 
-[[routes]]
-pattern = "*.t-b.es/*"
-zone_name = "t-b.es"
-```
+- an exact custom domain for `auth.t-b.es`; and
+- the `*.t-b.es/*` route for short links.
 
-The exact custom domain keeps authentication on `auth.t-b.es`. The wildcard route intercepts all other subdomains before they reach the existing origin.
+Cloudflare DNS must retain:
 
-Cloudflare DNS must contain:
-
-- the apex records used by GitHub Pages for `t-b.es`;
-- a proxied wildcard `*` record so `*.t-b.es` resolves through Cloudflare; and
+- the apex records used by GitHub Pages;
+- a proxied wildcard `*` record so short-link hosts reach Cloudflare; and
 - the Worker-managed `auth.t-b.es` custom-domain record.
 
-Disable the old Cloudflare **Redirect Rule** that rewrites wildcard subdomains to `t-b.es/<name>`. It is no longer required and can create loops or cached permanent redirects.
+Do not keep a separate Cloudflare Redirect Rule that rewrites wildcard subdomains to `t-b.es/<name>`; it can create loops and stale permanent redirects.
 
-## Verify the deployment
+## Production smoke test
+
+After deployment:
 
 1. Open `https://auth.t-b.es/health` and confirm it returns `{"ok":true}`.
-2. Run `curl.exe -I https://g.t-b.es/` and confirm it returns `302` with `Location: https://google.com/`.
-3. Open `https://t-b.es/` and select **Sign in with GitHub**.
-4. Authorize the app as `to3b`.
-5. Stage a harmless redirect change and publish it.
-6. Confirm the commit changed only `hello.txt`.
+2. Run `curl -I https://g.t-b.es/` and confirm a `302` response with the expected `Location`.
+3. Open `https://t-b.es/`, sign in, and stage a harmless change.
+4. Publish it and confirm the resulting commit changes only `hello.txt`.
+5. Undo the harmless change and publish again if it was only a test.
 
-After the first authorization, the browser remains signed in until the refresh token expires, the cookie is cleared, or the GitHub authorization is revoked.
+## Repository layout
 
-## Local Worker development
-
-Copy the example environment file and fill in development credentials:
-
-```bash
-cd worker
-cp .dev.vars.example .dev.vars
-npm install
-npm run dev
+```text
+.
+├── assets/
+│   ├── app.js              # Link desk controller
+│   ├── redirects.js        # Shared validation and draft-diff logic
+│   └── styles.css          # UI tokens and components
+├── test/
+│   └── redirects.test.js   # Frontend unit tests
+├── worker/
+│   ├── src/
+│   │   ├── entry.js        # Host router
+│   │   ├── index.js        # Auth and GitHub API handler
+│   │   └── short-redirects.js
+│   ├── test/worker.test.mjs
+│   └── wrangler.jsonc
+├── 404.html                # Self-contained static fallback
+├── hello.txt               # Redirect map
+└── index.html              # Link desk document
 ```
-
-`.dev.vars` is ignored by Git and must never be committed.
-
-## Manual editing
-
-`hello.txt` remains the source of truth and can still be edited directly:
-
-```json
-{
-  "g": "https://google.com",
-  "example": "https://example.com"
-}
-```
-
-The key becomes the subdomain. For example, `example` is available at `example.t-b.es` after the Worker refreshes its cached map, normally within 60 seconds.
-
-Keep the file as valid JSON:
-
-- Use double quotes around keys and URLs.
-- Separate entries with commas.
-- Do not add a comma after the final entry.
-- Use a complete `http://` or `https://` destination.
-- Do not use `auth`; `auth.t-b.es` is reserved for the authentication Worker.
-
-## Files
-
-- `hello.txt` — redirect key-to-URL map.
-- `index.html` — self-contained redirect management frontend.
-- `404.html` — static fallback redirect page.
-- `worker/src/entry.js` — hostname router for wildcard links, `www`, and authentication requests.
-- `worker/src/short-redirects.js` — wildcard redirect-map loading and HTTP redirect responses.
-- `worker/src/index.js` — GitHub App OAuth, encrypted sessions, token refresh, validation, and GitHub Contents API proxy.
-- `worker/wrangler.toml` — Worker routes and non-secret configuration.
-- `worker/test/worker.test.mjs` — validation, authentication-route, and wildcard-route tests.
-- `robots.txt` — asks search engines not to index the redirect service.
-- `.nojekyll` — serves the repository as plain static files.
-- `CNAME` — binds GitHub Pages to `t-b.es`.

@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "tbes-redirect-auth",
+  "main": "src/entry.js",
+  "compatibility_date": "2026-07-17",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "auth.t-b.es",
+      "custom_domain": true
+    },
+    {
+      "pattern": "*.t-b.es/*",
+      "zone_name": "t-b.es"
+    }
+  ],
+  "vars": {
+    "FRONTEND_ORIGIN": "https://t-b.es",
+    "AUTH_ORIGIN": "https://auth.t-b.es",
+    "GITHUB_OWNER": "to3b",
+    "GITHUB_REPO": "tobesURLshortener",
+    "GITHUB_REPOSITORY_ID": "1061521737",
+    "GITHUB_ALLOWED_LOGIN": "to3b",
+    "GITHUB_BRANCH": "main",
+    "GITHUB_FILE": "hello.txt",
+    "GITHUB_API_VERSION": "2026-03-10"
+  },
+  "secrets": {
+    "required": ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET", "SESSION_SECRET"]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  }
+}

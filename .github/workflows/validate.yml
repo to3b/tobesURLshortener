@@ -8,26 +8,36 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Check frontend JavaScript
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          html = Path("index.html").read_text()
-          match = re.search(r"<script>\s*(.*?)\s*</script>", html, re.S)
-          if not match:
-              raise SystemExit("No inline script found")
-          Path("/tmp/index.js").write_text(match.group(1))
-          PY
-          node --check /tmp/index.js
-      - name: Check Worker
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            worker/package-lock.json
+      - name: Install frontend tooling
+        run: npm ci
+      - name: Check static site
+        run: npm run check
+      - name: Install Worker tooling
+        working-directory: worker
+        run: npm ci
+      - name: Check Worker code
         working-directory: worker
         run: npm run check
+      - name: Check Worker bindings
+        working-directory: worker
+        run: npm run types:check
+      - name: Validate Cloudflare bundle
+        working-directory: worker
+        run: npm run check:deploy

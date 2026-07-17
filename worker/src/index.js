@@ -3,7 +3,10 @@ const STATE_COOKIE = "tbes_oauth_state";
 const ACCESS_REFRESH_SKEW_MS = 5 * 60 * 1000;
 const DEFAULT_SESSION_MS = 180 * 24 * 60 * 60 * 1000;
 const MAX_BODY_BYTES = 64 * 1024;
-const RESERVED_KEYS = new Set(["auth"]);
+const MAX_UPSTREAM_BYTES = 256 * 1024;
+const MAX_REDIRECTS = 500;
+const MAX_DESTINATION_LENGTH = 2048;
+const RESERVED_KEYS = new Set(["auth", "www"]);
 
 class HttpError extends Error {
   constructor(status, message, code = "request_failed") {
@@ -134,8 +137,8 @@ export default {
 
       throw new HttpError(404, "Not found.", "not_found");
     } catch (error) {
-      console.error(error);
       const httpError = toHttpError(error);
+      logError(request, httpError, error);
       const headers = {};
       if (httpError.status === 401) {
         headers["Set-Cookie"] = clearCookie(SESSION_COOKIE);
@@ -169,6 +172,16 @@ function validateEnvironment(env) {
   for (const key of required) {
     if (!env[key]) throw new Error(`Missing Worker configuration: ${key}`);
   }
+
+  if (String(env.SESSION_SECRET).length < 32) {
+    throw new Error("SESSION_SECRET must contain at least 32 characters.");
+  }
+  for (const key of ["FRONTEND_ORIGIN", "AUTH_ORIGIN"]) {
+    const origin = new URL(env[key]);
+    if (origin.protocol !== "https:" || origin.origin !== env[key]) {
+      throw new Error(`${key} must be an HTTPS origin without a path.`);
+    }
+  }
 }
 
 async function startLogin(env) {
@@ -189,16 +202,17 @@ async function startLogin(env) {
   authorize.searchParams.set("state", state);
   authorize.searchParams.set("code_challenge", challenge);
   authorize.searchParams.set("code_challenge_method", "S256");
-  authorize.searchParams.set("repository_id", env.GITHUB_REPOSITORY_ID);
   authorize.searchParams.set("allow_signup", "false");
 
+  const headers = new Headers({
+    Location: authorize.toString(),
+    "Cache-Control": "no-store",
+    "Set-Cookie": cookie(STATE_COOKIE, stateCookie, 10 * 60),
+  });
+  applySecurityHeaders(headers);
   return new Response(null, {
     status: 302,
-    headers: {
-      Location: authorize.toString(),
-      "Cache-Control": "no-store",
-      "Set-Cookie": cookie(STATE_COOKIE, stateCookie, 10 * 60),
-    },
+    headers,
   });
 }
 
@@ -258,10 +272,11 @@ async function finishLogin(request, env) {
     });
     headers.append("Set-Cookie", sessionCookie(encrypted, session));
     headers.append("Set-Cookie", clearCookie(STATE_COOKIE));
+    applySecurityHeaders(headers);
     return new Response(null, { status: 302, headers });
   } catch (error) {
-    console.error(error);
     const httpError = toHttpError(error);
+    logError(request, httpError, error);
     return redirectToFrontend(env, httpError.code, clearCookie(STATE_COOKIE));
   }
 }
@@ -313,12 +328,12 @@ async function oauthTokenRequest(parameters) {
     },
     body: new URLSearchParams(parameters),
   });
-  const data = await response.json().catch(() => ({}));
+  const data = await readJsonResponse(response, MAX_BODY_BYTES, "GitHub authorization");
 
-  if (!response.ok || data.error || !data.access_token) {
+  if (!response.ok || data?.error || !data?.access_token) {
     throw new HttpError(
       401,
-      data.error_description || data.error || "GitHub authorization failed.",
+      data?.error_description || data?.error || "GitHub authorization failed.",
       "github_authorization_failed",
     );
   }
@@ -366,9 +381,11 @@ function assertFrontendOrigin(request, env) {
 
 function handleOptions(request, env) {
   assertFrontendOrigin(request, env);
+  const headers = corsHeaders(request, env);
+  applySecurityHeaders(headers);
   return new Response(null, {
     status: 204,
-    headers: corsHeaders(request, env),
+    headers,
   });
 }
 
@@ -389,7 +406,7 @@ function jsonResponse(data, status, request, env, extraHeaders = {}) {
   const headers = corsHeaders(request, env);
   headers.set("Content-Type", "application/json; charset=utf-8");
   headers.set("Cache-Control", "no-store");
-  headers.set("X-Content-Type-Options", "nosniff");
+  applySecurityHeaders(headers);
   for (const [name, value] of Object.entries(extraHeaders || {})) {
     if (value) headers.append(name, value);
   }
@@ -400,6 +417,7 @@ function redirectToFrontend(env, result, setCookieHeader = "") {
   const target = new URL(env.FRONTEND_ORIGIN);
   target.searchParams.set("auth", result);
   const headers = new Headers({ Location: target.toString(), "Cache-Control": "no-store" });
+  applySecurityHeaders(headers);
   if (setCookieHeader) headers.append("Set-Cookie", setCookieHeader);
   return new Response(null, { status: 302, headers });
 }
@@ -413,8 +431,7 @@ async function githubRequest(env, accessToken, path, options = {}) {
   if (options.body) headers.set("Content-Type", "application/json");
 
   const response = await fetch(`https://api.github.com${path}`, { ...options, headers });
-  const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  const data = await readJsonResponse(response, MAX_UPSTREAM_BYTES, "GitHub API");
 
   if (!response.ok) {
     const status = response.status === 401 ? 401 : response.status;
@@ -441,8 +458,13 @@ export function validateRedirects(value) {
     throw new HttpError(400, "Redirects must be a JSON object.", "invalid_redirects");
   }
 
+  const entries = Object.entries(value);
+  if (entries.length > MAX_REDIRECTS) {
+    throw new HttpError(400, `At most ${MAX_REDIRECTS} redirects may be configured.`, "too_many_redirects");
+  }
+
   const redirects = {};
-  for (const [key, rawDestination] of Object.entries(value)) {
+  for (const [key, rawDestination] of entries) {
     if (!/^(?=.{1,63}$)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(key)) {
       throw new HttpError(400, `Invalid redirect name: ${key}`, "invalid_redirect_name");
     }
@@ -451,6 +473,13 @@ export function validateRedirects(value) {
     }
     if (typeof rawDestination !== "string") {
       throw new HttpError(400, `Invalid destination for ${key}.`, "invalid_destination");
+    }
+    if (rawDestination.length > MAX_DESTINATION_LENGTH) {
+      throw new HttpError(
+        400,
+        `Destination for ${key} may be at most ${MAX_DESTINATION_LENGTH} characters.`,
+        "invalid_destination",
+      );
     }
 
     let destination;
@@ -473,14 +502,13 @@ export function serialiseRedirects(redirects) {
 }
 
 async function readJsonBody(request) {
-  const length = Number(request.headers.get("Content-Length") || 0);
-  if (length > MAX_BODY_BYTES) {
-    throw new HttpError(413, "Request body is too large.", "body_too_large");
-  }
-  const text = await request.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) {
-    throw new HttpError(413, "Request body is too large.", "body_too_large");
-  }
+  const text = await readLimitedText(
+    request,
+    MAX_BODY_BYTES,
+    413,
+    "Request body is too large.",
+    "body_too_large",
+  );
   try {
     return JSON.parse(text);
   } catch {
@@ -553,6 +581,9 @@ function timingSafeEqual(left, right) {
   const a = new TextEncoder().encode(String(left));
   const b = new TextEncoder().encode(String(right));
   if (a.length !== b.length) return false;
+  if (typeof crypto.subtle.timingSafeEqual === "function") {
+    return crypto.subtle.timingSafeEqual(a, b);
+  }
   let difference = 0;
   for (let index = 0; index < a.length; index += 1) difference |= a[index] ^ b[index];
   return difference === 0;
@@ -591,4 +622,75 @@ function toHttpError(error) {
   if (error instanceof HttpError) return error;
   if (error instanceof SyntaxError) return new HttpError(502, "hello.txt is not valid JSON.", "invalid_redirect_file");
   return new HttpError(500, "Unexpected server error.", "server_error");
+}
+
+async function readJsonResponse(response, maxBytes, source) {
+  const text = await readLimitedText(
+    response,
+    maxBytes,
+    502,
+    `${source} returned an unexpectedly large response.`,
+  );
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new HttpError(502, `${source} returned invalid JSON.`, "invalid_upstream_response");
+  }
+}
+
+async function readLimitedText(
+  message,
+  maxBytes,
+  status,
+  errorMessage,
+  errorCode = "response_too_large",
+) {
+  const declaredLength = Number(message.headers.get("Content-Length") || 0);
+  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
+    throw new HttpError(status, errorMessage, errorCode);
+  }
+
+  if (!message.body) return "";
+  const reader = message.body.getReader();
+  const decoder = new TextDecoder();
+  let total = 0;
+  let text = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new HttpError(status, errorMessage, errorCode);
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+function applySecurityHeaders(headers) {
+  headers.set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'");
+  headers.set("Permissions-Policy", "camera=(), geolocation=(), microphone=()");
+  headers.set("Referrer-Policy", "no-referrer");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Frame-Options", "DENY");
+}
+
+function logError(request, httpError, cause) {
+  if (httpError.status < 500) return;
+  const url = new URL(request.url);
+  console.error({
+    event: "request_failed",
+    code: httpError.code,
+    status: httpError.status,
+    method: request.method,
+    path: url.pathname,
+    cause: cause instanceof Error ? cause.name : "UnknownError",
+  });
 }
